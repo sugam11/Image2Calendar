@@ -1,24 +1,40 @@
-//
-//  ContentView.swift
-//  Image2Calendar
-//
-//  Created by Sugam Garg on 11/15/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var ocrVM = OCRViewModel()
+    @State private var showPicker = false
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+        NavigationStack {
+            VStack(spacing: 20) {
+                
+                if let image = ocrVM.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 300)
+                }
 
-#Preview {
-    ContentView()
+                Button("Take or Choose Photo") {
+                    showPicker = true
+                }
+                .buttonStyle(.borderedProminent)
+
+                if ocrVM.events.count > 0 {
+                    NavigationLink("Review Detected Events") {
+                        EventListView(events: ocrVM.events)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding()
+            .navigationTitle("Calendar Scanner")
+        }
+        .sheet(isPresented: $showPicker) {
+            ImagePicker(image: $ocrVM.image)
+        }
+        .onChange(of: ocrVM.image) { _, newImage in
+            if let img = newImage { ocrVM.processImage(img) }
+        }
+    }
 }
