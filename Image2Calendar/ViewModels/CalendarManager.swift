@@ -34,7 +34,13 @@ class CalendarManager {
         newEvent.title = event.title
         newEvent.startDate = event.startDate
         newEvent.endDate = event.endDate ?? event.startDate.addingTimeInterval(3600)
+        newEvent.location = event.location
+        newEvent.notes = "Created by Image2Calendar" // Add identifier for deletion
         newEvent.calendar = store.defaultCalendarForNewEvents
+
+        // Add 15-minute reminder
+        let alarm = EKAlarm(relativeOffset: -15 * 60) // 15 minutes before (in seconds)
+        newEvent.addAlarm(alarm)
 
         try? store.save(newEvent, span: .thisEvent)
     }

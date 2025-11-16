@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		CA2262EC2EC960B4003B1DFA /* Image2Calendar.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Image2Calendar.xcodeproj; sourceTree = "<group>"; };
 		CA79EAC62EC8E167007EE045 /* Image2Calendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Image2Calendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -29,6 +30,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CA2262EE2EC960B4003B1DFA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		CA79EABD2EC8E167007EE045 = {
 			isa = PBXGroup;
 			children = (
@@ -97,6 +105,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CA79EAC72EC8E167007EE045 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = CA2262EE2EC960B4003B1DFA /* Products */;
+					ProjectRef = CA2262EC2EC960B4003B1DFA /* Image2Calendar.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				CA79EAC52EC8E167007EE045 /* Image2Calendar */,
@@ -253,6 +267,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Image2Calendar needs access to your calendar \n  to add extracted events from images.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "Image2Calendar needs access to your calendar \n  to add extracted events from images.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Image2Calendar needs access to your photo \n  library to select calendar images for OCR processing.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -284,6 +301,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Image2Calendar needs access to your calendar \n  to add extracted events from images.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "Image2Calendar needs access to your calendar \n  to add extracted events from images.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Image2Calendar needs access to your photo \n  library to select calendar images for OCR processing.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
