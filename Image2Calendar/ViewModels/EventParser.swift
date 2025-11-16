@@ -24,15 +24,20 @@ struct TextObservationInfo {
     let observation: VNRecognizedTextObservation
 }
 
-class EventParser {
+struct EventParser {
 
     private let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    // Spatial parsing thresholds (as percentage of screen dimensions)
+    private let horizontalAlignmentThreshold: CGFloat = 0.06  // 6% - events within same column
+    private let maxVerticalTitleDistance: CGFloat = 0.08      // 8% - max distance to look for title above time
+    private let multiLineTitleTolerance: CGFloat = 0.03       // 3% - group text into multi-line titles
 
     // Mapping: column X-position -> day name
     private var dayColumns: [CGFloat: String] = [:]
 
     // MARK: - Main parse function
-    func parse(lines: [VNRecognizedTextObservation]) -> [ScannedEvent] {
+    mutating func parse(lines: [VNRecognizedTextObservation]) -> [ScannedEvent] {
         detectDayHeaders(from: lines)
 
         print("📅 Day columns detected: \(dayColumns)")
@@ -114,10 +119,6 @@ class EventParser {
         let xPos = timeObs.boundingBox.midX
         let yPos = timeObs.boundingBox.midY
 
-        // Use tighter horizontal tolerance - only within the same column
-        let xThreshold: CGFloat = 0.06 // 6% horizontal tolerance - stays within column
-        let maxVerticalDistance: CGFloat = 0.08 // Maximum distance to look for title (8% of screen height)
-
         // Find ALL text above the time line that's horizontally aligned
         // In Vision coordinates, Y=0 is bottom, Y=1 is top, so "above" means higher Y
         let candidates = textInfos.filter { info in
@@ -129,10 +130,10 @@ class EventParser {
             let isAbove = yDistance > 0
 
             // Strict horizontal alignment - must be very close in X
-            let isHorizontallyAligned = abs(candidateX - xPos) < xThreshold
+            let isHorizontallyAligned = abs(candidateX - xPos) < horizontalAlignmentThreshold
 
             // Must be close vertically (within same event block)
-            let isVerticallyNear = yDistance > 0 && yDistance < maxVerticalDistance
+            let isVerticallyNear = yDistance > 0 && yDistance < maxVerticalTitleDistance
 
             // Exclude day headers and time strings
             let isNotDayHeader = !days.contains(where: { info.text.caseInsensitiveCompare($0) == .orderedSame })
@@ -155,9 +156,9 @@ class EventParser {
             let candidateY = info.observation.boundingBox.midY
             let distanceFromClosest = abs(candidateY - closestY)
 
-            // Include candidates that are within 0.03 (3%) of the closest candidate
+            // Include candidates that are within tolerance of the closest candidate
             // This captures multi-line titles
-            return distanceFromClosest < 0.03
+            return distanceFromClosest < multiLineTitleTolerance
         }
 
         // Sort by Y position (DESCENDING - highest Y first = top-most text first)
@@ -179,7 +180,7 @@ class EventParser {
     }
     
     // MARK: - Detect header row (day names)
-    private func detectDayHeaders(from lines: [VNRecognizedTextObservation]) {
+    private mutating func detectDayHeaders(from lines: [VNRecognizedTextObservation]) {
         dayColumns.removeAll()
 
         for line in lines {

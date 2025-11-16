@@ -9,7 +9,7 @@ struct ContentView: View {
     @State private var showDeleteResult = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 if let image = viewModel.image {
                     Image(uiImage: image)
@@ -144,6 +144,12 @@ struct ContentView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(deleteResultMessage)
+            }
+            .alert(viewModel.errorMessage?.lowercased().contains("success") == true ? "Success" : "Error",
+                   isPresented: $viewModel.showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.errorMessage ?? "An unknown error occurred")
             }
             .sheet(isPresented: $isShowingPhotoPicker) {
                 PhotoPicker(selectedImage: $viewModel.image) { image in

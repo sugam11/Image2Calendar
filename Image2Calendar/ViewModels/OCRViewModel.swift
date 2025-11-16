@@ -19,7 +19,9 @@ class OCRViewModel: ObservableObject {
     @Published var image: UIImage?
     @Published var scannedEvents: [ScannedEvent] = []
     @Published var isProcessing: Bool = false
-    
+    @Published var errorMessage: String?
+    @Published var showError: Bool = false
+
     private var parser = EventParser()
     
     // MARK: - Perform OCR on selected image
@@ -30,6 +32,8 @@ class OCRViewModel: ObservableObject {
         
         guard let cgImage = image.cgImage else {
             self.isProcessing = false
+            self.errorMessage = "Failed to process image. Please try a different image."
+            self.showError = true
             return
         }
         
@@ -40,14 +44,18 @@ class OCRViewModel: ObservableObject {
                 print("❌ OCR Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.isProcessing = false
+                    self.errorMessage = "OCR failed: \(error.localizedDescription)"
+                    self.showError = true
                 }
                 return
             }
 
-            guard let observations = request.results as? [VNRecognizedTextObservation] else {
+            guard let observations = request.results as? [VNRecognizedTextObservation], !observations.isEmpty else {
                 print("❌ No OCR observations found")
                 DispatchQueue.main.async {
                     self.isProcessing = false
+                    self.errorMessage = "No text detected in image. Please try a clearer image with visible text."
+                    self.showError = true
                 }
                 return
             }
@@ -72,6 +80,12 @@ class OCRViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.scannedEvents = sortedEvents
                 self.isProcessing = false
+
+                // Show error if no events were extracted despite detecting text
+                if sortedEvents.isEmpty {
+                    self.errorMessage = "No calendar events detected. Please ensure the image contains a weekly calendar with day headers (Mon, Tue, etc.) and time ranges (e.g., '9:00 am - 10:00 am')."
+                    self.showError = true
+                }
             }
         }
         
@@ -90,7 +104,9 @@ class OCRViewModel: ObservableObject {
         let store = EKEventStore()
 
         // Request access (iOS 17+)
-        store.requestFullAccessToEvents { granted, error in
+        store.requestFullAccessToEvents { [weak self] granted, error in
+            guard let self = self else { return }
+
             if granted {
                 let ekEvent = EKEvent(eventStore: store)
                 ekEvent.title = event.title
@@ -107,11 +123,23 @@ class OCRViewModel: ObservableObject {
                 do {
                     try store.save(ekEvent, span: .thisEvent)
                     print("✅ Event saved to calendar: \(event.title)")
+                    DispatchQueue.main.async {
+                        self.errorMessage = "Event '\(event.title)' added to calendar successfully!"
+                        self.showError = true
+                    }
                 } catch {
                     print("❌ Failed to save event: \(error)")
+                    DispatchQueue.main.async {
+                        self.errorMessage = "Failed to save event: \(error.localizedDescription)"
+                        self.showError = true
+                    }
                 }
             } else {
                 print("❌ Calendar access denied")
+                DispatchQueue.main.async {
+                    self.errorMessage = "Calendar access denied. Please enable access in Settings."
+                    self.showError = true
+                }
             }
         }
     }
@@ -153,8 +181,21 @@ class OCRViewModel: ObservableObject {
                 }
 
                 print("✅ Added \(successCount) events to calendar (Failed: \(failureCount))")
+
+                DispatchQueue.main.async {
+                    if failureCount == 0 {
+                        self.errorMessage = "Successfully added all \(successCount) events to calendar!"
+                    } else {
+                        self.errorMessage = "Added \(successCount) events. Failed to add \(failureCount) event\(failureCount == 1 ? "" : "s")."
+                    }
+                    self.showError = true
+                }
             } else {
                 print("❌ Calendar access denied")
+                DispatchQueue.main.async {
+                    self.errorMessage = "Calendar access denied. Please enable access in Settings."
+                    self.showError = true
+                }
             }
         }
     }
