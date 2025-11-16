@@ -102,8 +102,7 @@ All detected events are automatically added to your iOS Calendar with the correc
 Found a bug or have a feature request? We'd love to hear from you!
 
 ### How to Create an Issue
-
-1. Go to the [Issues page](https://github.com/YOUR_USERNAME/Image2Calendar/issues) (replace `YOUR_USERNAME` with your GitHub username)
+1. Go to the [Issues page](https://github.com/sugam11/Image2Calendar/issues) (replace `YOUR_USERNAME` with your GitHub username)
 2. Click the **"New Issue"** button
 3. Choose an appropriate title that summarizes the issue
 4. Provide details including:
