@@ -19,6 +19,8 @@ class OCRViewModel: ObservableObject {
     @Published var image: UIImage?
     @Published var scannedEvents: [ScannedEvent] = []
     @Published var isProcessing: Bool = false
+    @Published var addedEventIDs: Set<UUID> = [] // Track which events have been added to calendar
+    @Published var isAddingAll: Bool = false // Track "Add All" operation only
     @Published var errorMessage: String?
     @Published var showError: Bool = false
 
@@ -28,6 +30,7 @@ class OCRViewModel: ObservableObject {
     func performOCR(on image: UIImage) {
         self.isProcessing = true
         self.scannedEvents = []
+        self.addedEventIDs = [] // Reset added events for new image
         self.image = image
         
         guard let cgImage = image.cgImage else {
@@ -101,6 +104,13 @@ class OCRViewModel: ObservableObject {
     
     // MARK: - Add selected event to Calendar
     func addEventToCalendar(_ event: ScannedEvent) {
+        // Skip if already added
+        guard !addedEventIDs.contains(event.id) else {
+            errorMessage = "Event '\(event.title)' has already been added to calendar."
+            showError = true
+            return
+        }
+
         let store = EKEventStore()
 
         // Request access (iOS 17+)
@@ -124,6 +134,7 @@ class OCRViewModel: ObservableObject {
                     try store.save(ekEvent, span: .thisEvent)
                     print("✅ Event saved to calendar: \(event.title)")
                     DispatchQueue.main.async {
+                        self.addedEventIDs.insert(event.id) // Mark as added
                         self.errorMessage = "Event '\(event.title)' added to calendar successfully!"
                         self.showError = true
                     }
@@ -147,6 +158,19 @@ class OCRViewModel: ObservableObject {
     // MARK: - Add all events to Calendar
     func addAllEventsToCalendar() {
         guard !scannedEvents.isEmpty else { return }
+        guard !isAddingAll else { return } // Prevent spam clicking "Add All"
+
+        isAddingAll = true
+
+        // Filter out events that have already been added
+        let eventsToAdd = scannedEvents.filter { !addedEventIDs.contains($0.id) }
+
+        guard !eventsToAdd.isEmpty else {
+            errorMessage = "All events have already been added to calendar."
+            showError = true
+            isAddingAll = false
+            return
+        }
 
         let store = EKEventStore()
 
@@ -156,8 +180,9 @@ class OCRViewModel: ObservableObject {
             if granted {
                 var successCount = 0
                 var failureCount = 0
+                let skippedCount = self.scannedEvents.count - eventsToAdd.count
 
-                for event in self.scannedEvents {
+                for event in eventsToAdd {
                     let ekEvent = EKEvent(eventStore: store)
                     ekEvent.title = event.title
                     ekEvent.startDate = event.startDate
@@ -173,6 +198,9 @@ class OCRViewModel: ObservableObject {
                     do {
                         try store.save(ekEvent, span: .thisEvent)
                         successCount += 1
+                        DispatchQueue.main.async {
+                            self.addedEventIDs.insert(event.id) // Mark as added
+                        }
                         print("✅ Event saved: \(event.title)")
                     } catch {
                         failureCount += 1
@@ -180,19 +208,31 @@ class OCRViewModel: ObservableObject {
                     }
                 }
 
-                print("✅ Added \(successCount) events to calendar (Failed: \(failureCount))")
+                print("✅ Added \(successCount) events to calendar (Failed: \(failureCount), Skipped: \(skippedCount))")
 
                 DispatchQueue.main.async {
-                    if failureCount == 0 {
-                        self.errorMessage = "Successfully added all \(successCount) events to calendar!"
-                    } else {
-                        self.errorMessage = "Added \(successCount) events. Failed to add \(failureCount) event\(failureCount == 1 ? "" : "s")."
+                    self.isAddingAll = false
+
+                    var message = ""
+                    if successCount > 0 {
+                        message = "Successfully added \(successCount) event\(successCount == 1 ? "" : "s") to calendar!"
                     }
+                    if skippedCount > 0 {
+                        if !message.isEmpty { message += " " }
+                        message += "\(skippedCount) event\(skippedCount == 1 ? " was" : "s were") already added."
+                    }
+                    if failureCount > 0 {
+                        if !message.isEmpty { message += " " }
+                        message += "Failed to add \(failureCount) event\(failureCount == 1 ? "" : "s")."
+                    }
+
+                    self.errorMessage = message
                     self.showError = true
                 }
             } else {
                 print("❌ Calendar access denied")
                 DispatchQueue.main.async {
+                    self.isAddingAll = false
                     self.errorMessage = "Calendar access denied. Please enable access in Settings."
                     self.showError = true
                 }
@@ -245,7 +285,11 @@ class OCRViewModel: ObservableObject {
 
             print("✅ Deleted \(deletedCount) app-created events")
 
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                // Reset added events tracking since events are deleted
+                if deletedCount > 0 {
+                    self?.addedEventIDs.removeAll()
+                }
                 completion(deletedCount, lastError)
             }
         }

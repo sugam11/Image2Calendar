@@ -40,12 +40,22 @@ struct ContentView: View {
                             Button(action: {
                                 viewModel.addAllEventsToCalendar()
                             }) {
-                                Label("Add All to Calendar", systemImage: "calendar.badge.plus")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                if viewModel.isAddingAll {
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                        .tint(.white)
+                                    Text("Adding...")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                } else {
+                                    Label("Add All to Calendar", systemImage: "calendar.badge.plus")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
                             }
                             .buttonStyle(.borderedProminent)
                             .tint(.green)
+                            .disabled(viewModel.isAddingAll)
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 12)
@@ -96,14 +106,21 @@ struct ContentView: View {
                         }
 
                         // Add to Calendar button
+                        let isAdded = viewModel.addedEventIDs.contains(event.id)
                         Button(action: {
                             viewModel.addEventToCalendar(event)
                         }) {
-                            Label("Add to Calendar", systemImage: "calendar.badge.plus")
-                                .font(.caption)
+                            if isAdded {
+                                Label("Added", systemImage: "checkmark.circle.fill")
+                                    .font(.caption)
+                            } else {
+                                Label("Add to Calendar", systemImage: "calendar.badge.plus")
+                                    .font(.caption)
+                            }
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.blue)
+                        .tint(isAdded ? .gray : .blue)
+                        .disabled(isAdded)
                     }
                     .padding(.vertical, 8)
                 }
